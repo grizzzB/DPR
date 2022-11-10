@@ -1,3 +1,10 @@
+hjb_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.hjb.train
+
+hjb_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.hjb.dev
 # @package _group_
 
 nq_train:

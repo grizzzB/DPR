@@ -33,3 +33,10 @@ curatedtrec_test:
   _target_: dpr.data.retriever_data.CsvQASrc
   file: data.retriever.qas.curatedtrec-test
 
+hjb_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.hjb.qas.train
+
+hjb_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: data.hjb.qas.dev
