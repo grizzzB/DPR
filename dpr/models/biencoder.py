@@ -127,6 +127,7 @@ class BiEncoder(nn.Module):
     ) -> Tuple[T, T]:
     # encoder type이 question이 아닌건 어떤 경우지? passage encoder와 같은 걸 가져다 씀
         q_encoder = self.question_model if encoder_type is None or encoder_type == "question" else self.ctx_model
+        # 최종은 pooled output만 사용함. 나머지 두개는 sequence 마다 output 값을 가진 tensor
         _q_seq, q_pooled_out, _q_hidden = self.get_representation(
             q_encoder,
             question_ids,

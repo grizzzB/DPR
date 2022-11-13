@@ -222,6 +222,31 @@ class HFBertEncoder(BertModel):
         cls, cfg_name: str, projection_dim: int = 0, dropout: float = 0.1, pretrained: bool = True, **kwargs
     ) -> BertModel:
         logger.info("Initializing HF BERT Encoder. cfg_name=%s", cfg_name)
+        '''
+        {
+            "architectures": [
+                "BertForMaskedLM"
+            ],
+            "attention_probs_dropout_prob": 0.1,
+            "gradient_checkpointing": false,
+            "hidden_act": "gelu",
+            "hidden_dropout_prob": 0.1,
+            "hidden_size": 768,
+            "initializer_range": 0.02,
+            "intermediate_size": 3072,
+            "layer_norm_eps": 1e-12,
+            "max_position_embeddings": 512,
+            "model_type": "bert",
+            "num_attention_heads": 12,
+            "num_hidden_layers": 12,
+            "pad_token_id": 0,
+            "position_embedding_type": "absolute",
+            "transformers_version": "4.6.0.dev0",
+            "type_vocab_size": 2,
+            "use_cache": true,
+            "vocab_size": 30522
+        }
+        '''
         cfg = BertConfig.from_pretrained(cfg_name if cfg_name else "bert-base-uncased")
         if dropout != 0:
             cfg.attention_probs_dropout_prob = dropout
@@ -295,11 +320,13 @@ class HFBertEncoder(BertModel):
 
     # TODO: make a super class for all encoders
     def get_out_size(self):
+        # pooler만 써서 이렇게 반환 하는듯.
         if self.encode_proj:
             return self.encode_proj.out_features
         return self.config.hidden_size
 
 
+# tokenize->tenserize 하는 class. 전처리 용인 듯함.
 class BertTensorizer(Tensorizer):
     def __init__(self, tokenizer: BertTokenizer, max_length: int, pad_to_max: bool = True):
         self.tokenizer = tokenizer
@@ -335,9 +362,12 @@ class BertTensorizer(Tensorizer):
                 truncation=True,
             )
 
+        # 위에 옵션을 다 true로 하면 아래 코드는 없어도 되는게 아닌지? 이상함
         seq_len = self.max_length
+        # padding.
         if self.pad_to_max and len(token_ids) < seq_len:
             token_ids = token_ids + [self.tokenizer.pad_token_id] * (seq_len - len(token_ids))
+        # remove overflowed tokens.
         if len(token_ids) >= seq_len:
             token_ids = token_ids[0:seq_len] if apply_max_len else token_ids
             token_ids[-1] = self.tokenizer.sep_token_id
