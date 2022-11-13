@@ -764,6 +764,8 @@ def main(cfg: DictConfig):
         logger.info("%s", OmegaConf.to_yaml(cfg))
 
     trainer = BiEncoderTrainer(cfg)
+    logger.info(f"#### conf: {dict(cfg)}")
+
 
     if cfg.train_datasets and len(cfg.train_datasets) > 0:
         trainer.run_train()
