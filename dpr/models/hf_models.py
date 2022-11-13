@@ -38,6 +38,16 @@ logger = logging.getLogger(__name__)
 
 def get_bert_biencoder_components(cfg, inference_only: bool = False, **kwargs):
     dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
+    '''
+    encoder_model_type: hf_bert
+    pretrained_model_cfg: bert-base-uncased
+    pretrained_file: null
+    projection_dim: 0
+    sequence_length: 256
+    dropout: 0.1
+    fix_ctx_encoder: false
+    pretrained: true
+    '''
     question_encoder = HFBertEncoder.init_encoder(
         cfg.encoder.pretrained_model_cfg,
         projection_dim=cfg.encoder.projection_dim,
@@ -53,6 +63,7 @@ def get_bert_biencoder_components(cfg, inference_only: bool = False, **kwargs):
         **kwargs
     )
 
+    # bool. default는 false 
     fix_ctx_encoder = cfg.encoder.fix_ctx_encoder if hasattr(cfg.encoder, "fix_ctx_encoder") else False
     biencoder = BiEncoder(question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
 
@@ -198,9 +209,12 @@ def get_roberta_tokenizer(pretrained_cfg_name: str, do_lower_case: bool = True):
 
 class HFBertEncoder(BertModel):
     def __init__(self, config, project_dim: int = 0):
+        # bert encoder
         BertModel.__init__(self, config)
         assert config.hidden_size > 0, "Encoder hidden_size can't be zero"
+        # projection. 0이면 없다고 함. 왜 하는 건지? default는 0임.
         self.encode_proj = nn.Linear(config.hidden_size, project_dim) if project_dim != 0 else None
+        # HF 기본 함수인 듯. from_pretrained에서는 overwrite된다고 함.
         self.init_weights()
 
     @classmethod
@@ -218,6 +232,8 @@ class HFBertEncoder(BertModel):
         else:
             return HFBertEncoder(cfg, project_dim=projection_dim)
 
+    # last_hidden_states, hidden_states는 bert는 그대로 넘겨주지만 pooler_output은 변형해서 넘겨줌. 
+    # 아직 구조가 이해는 안감..
     def forward(
         self,
         input_ids: T,
@@ -226,6 +242,7 @@ class HFBertEncoder(BertModel):
         representation_token_pos=0,
     ) -> Tuple[T, ...]:
 
+        #token_type_ids: pretrain 할때 [sep] 앞뒤 문장 구분해주는 id. 보통 fine tuning할때 0만 들어간다고 함.
         out = super().forward(
             input_ids=input_ids,
             token_type_ids=token_type_ids,
@@ -233,16 +250,22 @@ class HFBertEncoder(BertModel):
         )
 
         # HF >4.0 version support
+        # isinstance(data, data_type).data의 data_type이 맞는지 체크하는 함수인듯. 아래는 클래스 이름으로 체크함.
         if transformers.__version__.startswith("4") and isinstance(
             out,
             transformers.modeling_outputs.BaseModelOutputWithPoolingAndCrossAttentions,
         ):
             sequence_output = out.last_hidden_state
-            pooled_output = None
+            # classificatin 할때 최종 output으로 쓰는듯
+            # BaseModelOutputWithPoolingAndCrossAttentions일때, 값이 있는데 왜 아래는 값을 받으면서 여기선 None인지??
+            pooled_output = None 
+            #Hidden-states of the model at the output of each layer plus the optional initial embedding outputs
+            # 마지막 하나 레이어가 아니라 각 레이어 값을 다 더한 것이라 함.
             hidden_states = out.hidden_states
-
+        # 4버전 아닌 경우, hidden_states를 쓸 때
         elif self.config.output_hidden_states:
             sequence_output, pooled_output, hidden_states = out
+        # 아닐때.
         else:
             hidden_states = None
             out = super().forward(
@@ -252,17 +275,23 @@ class HFBertEncoder(BertModel):
             )
             sequence_output, pooled_output = out
 
+        # overwrite pooled_output.
+        # representation_token_pos. 정확히 뭔지 모르겟음 DPR에서 추가한 변수임
         if isinstance(representation_token_pos, int):
+            # sequence_output'shape : (batch_size, sequence_length, hidden_size)
             pooled_output = sequence_output[:, representation_token_pos, :]
         else:  # treat as a tensor
             bsz = sequence_output.size(0)
             assert representation_token_pos.size(0) == bsz, "query bsz={} while representation_token_pos bsz={}".format(
                 bsz, representation_token_pos.size(0)
             )
+            # tensor의 index가 어떻게 먹히는지 모르곘음.
             pooled_output = torch.stack([sequence_output[i, representation_token_pos[i, 1], :] for i in range(bsz)])
 
         if self.encode_proj:
+            #shape : (config.hidden_size, project_dim) 
             pooled_output = self.encode_proj(pooled_output)
+
         return sequence_output, pooled_output, hidden_states
 
     # TODO: make a super class for all encoders
