@@ -70,7 +70,7 @@ class BiEncoderTrainer(object):
         logger.info("***** Initializing components for training *****")
 
         # if model file is specified, encoder parameters from saved state should be used for initialization
-        model_file = get_model_file(cfg, cfg.checkpoint_file_name)
+        model_file = get_model_fi   le(cfg, cfg.checkpoint_file_name)
         saved_state = None
         if model_file:
             saved_state = load_states_from_checkpoint(model_file)
