@@ -233,7 +233,6 @@ class HFBertEncoder(BertModel):
             return HFBertEncoder(cfg, project_dim=projection_dim)
 
     # last_hidden_states, hidden_states는 bert는 그대로 넘겨주지만 pooler_output은 변형해서 넘겨줌. 
-    # 아직 구조가 이해는 안감..
     def forward(
         self,
         input_ids: T,
