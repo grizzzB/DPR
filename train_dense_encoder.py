@@ -755,7 +755,6 @@ def main(cfg: DictConfig):
 
     if cfg.output_dir is not None:
         os.makedirs(cfg.output_dir, exist_ok=True)
-
     cfg = setup_cfg_gpu(cfg)
     set_seed(cfg)
 

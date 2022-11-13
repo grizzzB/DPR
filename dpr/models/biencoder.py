@@ -83,12 +83,14 @@ class BiEncoder(nn.Module):
         attn_mask: T,
         fix_encoder: bool = False,
         representation_token_pos=0,
-    ) -> (T, T, T):
+    ) -> Tuple[T, T, T]:
         sequence_output = None
         pooled_output = None
         hidden_states = None
         if ids is not None:
             if fix_encoder:
+                # gradient off
+                # 이전 layre tensor들도 gradient 계산 안함.
                 with torch.no_grad():
                     sequence_output, pooled_output, hidden_states = sub_model(
                         ids,
@@ -98,9 +100,11 @@ class BiEncoder(nn.Module):
                     )
 
                 if sub_model.training:
+                    # encoder 이후 layer만 gradient 
                     sequence_output.requires_grad_(requires_grad=True)
                     pooled_output.requires_grad_(requires_grad=True)
             else:
+                # encoder도 학습함
                 sequence_output, pooled_output, hidden_states = sub_model(
                     ids,
                     segments,
@@ -121,6 +125,7 @@ class BiEncoder(nn.Module):
         encoder_type: str = None,
         representation_token_pos=0,
     ) -> Tuple[T, T]:
+    # encoder type이 question이 아닌건 어떤 경우지? passage encoder와 같은 걸 가져다 씀
         q_encoder = self.question_model if encoder_type is None or encoder_type == "question" else self.ctx_model
         _q_seq, q_pooled_out, _q_hidden = self.get_representation(
             q_encoder,
