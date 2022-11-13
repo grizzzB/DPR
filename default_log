@@ -1,0 +1,278 @@
+# Default config 확인을 위한 샘플 로그 첨부
+
+
+/home/hjb/miniconda3/envs/rerank/lib/python3.9/site-packages/spacy/language.py:1895: UserWarning: [W123] Argument disable with value ['parser', 'tagger', 'ner', 'entity_ruler'] is used instead of ['senter'] as specified in the config. Be aware that this might affect other components in your pipeline.
+  warnings.warn(
+/home/hjb/workspace/DPR/train_dense_encoder.py:747: UserWarning: 
+The version_base parameter is not specified.
+Please specify a compatability version level, or None.
+Will assume defaults for version 1.1
+  @hydra.main(config_path="conf", config_name="biencoder_train_cfg")
+[140338855683200] 2022-11-13 16:41:16,399 [INFO] root: Sys.argv: ['train_dense_encoder.py', '--train_datasets=[nq_train]', 'dev_datasets=[nq_dev]', 'train=biencoder_local']
+[140338855683200] 2022-11-13 16:41:16,399 [INFO] root: Hydra formatted Sys.argv: ['train_dense_encoder.py', 'train_datasets=[nq_train]', 'dev_datasets=[nq_dev]', 'train=biencoder_local']
+/home/hjb/miniconda3/envs/rerank/lib/python3.9/site-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'biencoder_train_cfg': Defaults list is missing `_self_`. See https://hydra.cc/docs/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+/home/hjb/miniconda3/envs/rerank/lib/python3.9/site-packages/hydra/core/default_element.py:124: UserWarning: In 'train/biencoder_local': Usage of deprecated keyword in package header '# @package _group_'.
+See https://hydra.cc/docs/next/upgrades/1.0_to_1.1/changes_to_package_header for more information
+  deprecation_warning(
+/home/hjb/miniconda3/envs/rerank/lib/python3.9/site-packages/hydra/core/default_element.py:124: UserWarning: In 'encoder/hf_bert': Usage of deprecated keyword in package header '# @package _group_'.
+See https://hydra.cc/docs/next/upgrades/1.0_to_1.1/changes_to_package_header for more information
+  deprecation_warning(
+/home/hjb/miniconda3/envs/rerank/lib/python3.9/site-packages/hydra/_internal/hydra.py:119: UserWarning: Future Hydra versions will no longer change working directory at job runtime by default.
+See https://hydra.cc/docs/next/upgrades/1.1_to_1.2/changes_to_job_working_dir/ for more information.
+  ret = run_job(
+[2022-11-13 16:41:16,579][root][INFO] - CFG's local_rank=-1
+[2022-11-13 16:41:16,579][root][INFO] - Env WORLD_SIZE=None
+[2022-11-13 16:41:16,579][root][INFO] - Initialized host hjb-ubuntu20 as d.rank -1 on device=cuda, n_gpu=1, world size=1
+[2022-11-13 16:41:16,579][root][INFO] - 16-bits training: False 
+[2022-11-13 16:41:16,580][root][INFO] - CFG (after gpu  configuration):
+[2022-11-13 16:41:16,585][root][INFO] - encoder:
+  encoder_model_type: hf_bert
+  pretrained_model_cfg: bert-base-uncased
+  pretrained_file: null
+  projection_dim: 0
+  sequence_length: 256
+  dropout: 0.1
+  fix_ctx_encoder: false
+  pretrained: true
+train:
+  batch_size: 1
+  dev_batch_size: 16
+  adam_eps: 1.0e-08
+  adam_betas: (0.9, 0.999)
+  max_grad_norm: 2.0
+  log_batch_step: 1
+  train_rolling_loss_step: 100
+  weight_decay: 0.0
+  learning_rate: 2.0e-05
+  warmup_steps: 1237
+  gradient_accumulation_steps: 1
+  num_train_epochs: 40
+  eval_per_epoch: 1
+  hard_negatives: 1
+  other_negatives: 0
+  val_av_rank_hard_neg: 30
+  val_av_rank_other_neg: 30
+  val_av_rank_bsz: 128
+  val_av_rank_max_qs: 10000
+datasets:
+  hjb_train:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.hjb.train
+  hjb_dev:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.hjb.dev
+  nq_train:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.nq-train
+  nq_train_hn1:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.nq-adv-hn-train
+  nq_dev:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.nq-dev
+  trivia_train:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.trivia-train
+  trivia_dev:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.trivia-dev
+  squad1_train:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.squad1-train
+  squad1_dev:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.squad1-dev
+  webq_train:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.webq-train
+  webq_dev:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.webq-dev
+  curatedtrec_train:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.curatedtrec-train
+  curatedtrec_dev:
+    _target_: dpr.data.biencoder_data.JsonQADataset
+    file: data.retriever.curatedtrec-dev
+train_datasets:
+- nq_train
+dev_datasets:
+- nq_dev
+output_dir: null
+train_sampling_rates: null
+loss_scale_factors: null
+do_lower_case: true
+val_av_rank_start_epoch: 30
+seed: 12345
+checkpoint_file_name: dpr_biencoder
+model_file: null
+local_rank: -1
+global_loss_buf_sz: 592000
+device: cuda
+distributed_world_size: 1
+distributed_port: null
+distributed_init_method: null
+no_cuda: false
+n_gpu: 1
+fp16: false
+fp16_opt_level: O1
+special_tokens: null
+ignore_checkpoint_offset: false
+ignore_checkpoint_optimizer: false
+ignore_checkpoint_lr: false
+multi_q_encoder: false
+local_shards_dataloader: false
+
+[2022-11-13 16:41:16,585][root][INFO] - ***** Initializing components for training *****
+[2022-11-13 16:41:16,585][root][INFO] - Checkpoint files []
+[2022-11-13 16:41:16,771][dpr.models.hf_models][INFO] - Initializing HF BERT Encoder. cfg_name=bert-base-uncased
+Some weights of the model checkpoint at bert-base-uncased were not used when initializing HFBertEncoder: ['cls.predictions.bias', 'cls.seq_relationship.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.weight']
+- This IS expected if you are initializing HFBertEncoder from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing HFBertEncoder from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+[2022-11-13 16:41:18,698][dpr.models.hf_models][INFO] - Initializing HF BERT Encoder. cfg_name=bert-base-uncased
+Some weights of the model checkpoint at bert-base-uncased were not used when initializing HFBertEncoder: ['cls.predictions.bias', 'cls.seq_relationship.bias', 'cls.predictions.transform.dense.bias', 'cls.predictions.transform.LayerNorm.bias', 'cls.seq_relationship.weight', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.decoder.weight', 'cls.predictions.transform.dense.weight']
+- This IS expected if you are initializing HFBertEncoder from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing HFBertEncoder from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+/home/hjb/miniconda3/envs/rerank/lib/python3.9/site-packages/transformers/optimization.py:306: FutureWarning: This implementation of AdamW is deprecated and will be removed in a future version. Use the PyTorch implementation torch.optim.AdamW instead, or set `no_deprecation_warning=True` to disable this warning
+  warnings.warn(
+[2022-11-13 16:41:22,468][dpr.utils.conf_utils][INFO] - train_datasets: ['nq_train']
+[2022-11-13 16:41:22,469][dpr.utils.conf_utils][INFO] - dev_datasets: ['nq_dev']
+[2022-11-13 16:41:22,470][root][INFO] - #### conf: {'encoder': {'encoder_model_type': 'hf_bert', 'pretrained_model_cfg': 'bert-base-uncased', 'pretrained_file': None, 'projection_dim': 0, 'sequence_length': 256, 'dropout': 0.1, 'fix_ctx_encoder': False, 'pretrained': True}, 'train': {'batch_size': 1, 'dev_batch_size': 16, 'adam_eps': 1e-08, 'adam_betas': '(0.9, 0.999)', 'max_grad_norm': 2.0, 'log_batch_step': 1, 'train_rolling_loss_step': 100, 'weight_decay': 0.0, 'learning_rate': 2e-05, 'warmup_steps': 1237, 'gradient_accumulation_steps': 1, 'num_train_epochs': 40, 'eval_per_epoch': 1, 'hard_negatives': 1, 'other_negatives': 0, 'val_av_rank_hard_neg': 30, 'val_av_rank_other_neg': 30, 'val_av_rank_bsz': 128, 'val_av_rank_max_qs': 10000}, 'datasets': {'hjb_train': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.hjb.train'}, 'hjb_dev': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.hjb.dev'}, 'nq_train': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.nq-train'}, 'nq_train_hn1': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.nq-adv-hn-train'}, 'nq_dev': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.nq-dev'}, 'trivia_train': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.trivia-train'}, 'trivia_dev': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.trivia-dev'}, 'squad1_train': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.squad1-train'}, 'squad1_dev': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.squad1-dev'}, 'webq_train': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.webq-train'}, 'webq_dev': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.webq-dev'}, 'curatedtrec_train': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.curatedtrec-train'}, 'curatedtrec_dev': {'_target_': 'dpr.data.biencoder_data.JsonQADataset', 'file': 'data.retriever.curatedtrec-dev'}}, 'train_datasets': ['nq_train'], 'dev_datasets': ['nq_dev'], 'output_dir': None, 'train_sampling_rates': None, 'loss_scale_factors': None, 'do_lower_case': True, 'val_av_rank_start_epoch': 30, 'seed': 12345, 'checkpoint_file_name': 'dpr_biencoder', 'model_file': None, 'local_rank': -1, 'global_loss_buf_sz': 592000, 'device': 'cuda', 'distributed_world_size': 1, 'distributed_port': None, 'distributed_init_method': None, 'no_cuda': False, 'n_gpu': 1, 'fp16': False, 'fp16_opt_level': 'O1', 'special_tokens': None, 'ignore_checkpoint_offset': False, 'ignore_checkpoint_optimizer': False, 'ignore_checkpoint_lr': False, 'multi_q_encoder': False, 'local_shards_dataloader': False}
+[2022-11-13 16:41:22,470][root][INFO] - Initializing task/set data ['nq_train']
+[2022-11-13 16:41:22,470][root][INFO] - Calculating shard positions
+[2022-11-13 16:41:22,470][dpr.data.biencoder_data][INFO] - Loading all data
+[2022-11-13 16:41:22,471][dpr.data.download_data][INFO] - Requested resource from https://dl.fbaipublicfiles.com/dpr/data/retriever/biencoder-nq-train.json.gz
+[2022-11-13 16:41:22,471][dpr.data.download_data][INFO] - Download root_dir /home/hjb/workspace/DPR
+[2022-11-13 16:41:22,471][dpr.data.download_data][INFO] - File to be downloaded as /home/hjb/workspace/DPR/downloads/data/retriever/nq-train.json
+[2022-11-13 16:41:22,471][dpr.data.download_data][INFO] - File already exist /home/hjb/workspace/DPR/downloads/data/retriever/nq-train.json
+[2022-11-13 16:41:22,471][dpr.data.download_data][INFO] - Loading from https://dl.fbaipublicfiles.com/dpr/nq_license/LICENSE
+[2022-11-13 16:41:22,471][dpr.data.download_data][INFO] - File already exist /home/hjb/workspace/DPR/downloads/data/retriever/LICENSE
+[2022-11-13 16:41:22,471][dpr.data.download_data][INFO] - Loading from https://dl.fbaipublicfiles.com/dpr/nq_license/README
+[2022-11-13 16:41:22,471][dpr.data.download_data][INFO] - File already exist /home/hjb/workspace/DPR/downloads/data/retriever/README
+[2022-11-13 16:41:22,471][dpr.data.biencoder_data][INFO] - Data files: ['/home/hjb/workspace/DPR/downloads/data/retriever/nq-train.json']
+[2022-11-13 16:41:22,471][root][INFO] - Reading file /home/hjb/workspace/DPR/downloads/data/retriever/nq-train.json
+[2022-11-13 16:41:48,264][root][INFO] - Aggregated data size: 58880
+[2022-11-13 16:41:48,280][dpr.data.biencoder_data][INFO] - Total cleaned data size: 58880
+[2022-11-13 16:41:48,282][root][INFO] - samples_per_shard=58880, shard_start_idx=0, shard_end_idx=58880, max_iterations=58880
+[2022-11-13 16:41:48,282][root][INFO] - Sharded dataset data 58880
+[2022-11-13 16:41:48,282][root][INFO] - rank=-1; Multi set data sizes [58880]
+[2022-11-13 16:41:48,282][root][INFO] - rank=-1; Multi set total data 58880
+[2022-11-13 16:41:48,282][root][INFO] - rank=-1; Multi set sampling_rates None
+[2022-11-13 16:41:48,283][root][INFO] - rank=-1; Multi set max_iterations per dataset [58880]
+[2022-11-13 16:41:48,283][root][INFO] - rank=-1; Multi set max_iterations 58880
+[2022-11-13 16:41:48,283][root][INFO] -   Total iterations per epoch=58880
+[2022-11-13 16:41:48,283][root][INFO] -  Total updates=2355200
+[2022-11-13 16:41:48,283][root][INFO] -   Eval step = 58880
+[2022-11-13 16:41:48,283][root][INFO] - ***** Training *****
+[2022-11-13 16:41:48,283][root][INFO] - ***** Epoch 0 *****
+[2022-11-13 16:41:48,284][root][INFO] - rank=-1; Iteration start
+[2022-11-13 16:41:48,284][root][INFO] - rank=-1; Multi set iteration: iteration ptr per set: [0]
+[2022-11-13 16:41:48,284][root][INFO] - rank=-1; Multi set iteration: source 0, batches to be taken: 58880
+[2022-11-13 16:41:48,299][root][INFO] - rank=-1; data_src_indices len=58880
+[2022-11-13 16:41:49,203][root][INFO] - Epoch: 0: Step: 1/58880, loss=0.054851, lr=0.000000
+[2022-11-13 16:41:49,341][root][INFO] - Epoch: 0: Step: 2/58880, loss=0.017810, lr=0.000000
+[2022-11-13 16:41:49,477][root][INFO] - Epoch: 0: Step: 3/58880, loss=0.000225, lr=0.000000
+[2022-11-13 16:41:49,612][root][INFO] - Epoch: 0: Step: 4/58880, loss=32.212456, lr=0.000000
+[2022-11-13 16:41:49,747][root][INFO] - Epoch: 0: Step: 5/58880, loss=0.000000, lr=0.000000
+[2022-11-13 16:41:49,882][root][INFO] - Epoch: 0: Step: 6/58880, loss=23.740189, lr=0.000000
+[2022-11-13 16:41:50,017][root][INFO] - Epoch: 0: Step: 7/58880, loss=0.000000, lr=0.000000
+[2022-11-13 16:41:50,153][root][INFO] - Epoch: 0: Step: 8/58880, loss=27.292862, lr=0.000000
+[2022-11-13 16:41:50,288][root][INFO] - Epoch: 0: Step: 9/58880, loss=0.010950, lr=0.000000
+[2022-11-13 16:41:50,424][root][INFO] - Epoch: 0: Step: 10/58880, loss=15.908981, lr=0.000000
+[2022-11-13 16:41:50,560][root][INFO] - Epoch: 0: Step: 11/58880, loss=6.082135, lr=0.000000
+[2022-11-13 16:41:50,695][root][INFO] - Epoch: 0: Step: 12/58880, loss=0.000000, lr=0.000000
+[2022-11-13 16:41:50,831][root][INFO] - Epoch: 0: Step: 13/58880, loss=6.195872, lr=0.000000
+[2022-11-13 16:41:50,967][root][INFO] - Epoch: 0: Step: 14/58880, loss=0.000000, lr=0.000000
+[2022-11-13 16:41:51,101][root][INFO] - Epoch: 0: Step: 15/58880, loss=0.000000, lr=0.000000
+[2022-11-13 16:41:51,237][root][INFO] - Epoch: 0: Step: 16/58880, loss=22.188889, lr=0.000000
+[2022-11-13 16:41:51,372][root][INFO] - Epoch: 0: Step: 17/58880, loss=7.891251, lr=0.000000
+[2022-11-13 16:41:51,506][root][INFO] - Epoch: 0: Step: 18/58880, loss=46.010269, lr=0.000000
+[2022-11-13 16:41:51,640][root][INFO] - Epoch: 0: Step: 19/58880, loss=33.934990, lr=0.000000
+[2022-11-13 16:41:51,776][root][INFO] - Epoch: 0: Step: 20/58880, loss=10.790617, lr=0.000000
+[2022-11-13 16:41:51,912][root][INFO] - Epoch: 0: Step: 21/58880, loss=0.000000, lr=0.000000
+[2022-11-13 16:41:52,046][root][INFO] - Epoch: 0: Step: 22/58880, loss=0.000000, lr=0.000000
+[2022-11-13 16:41:52,181][root][INFO] - Epoch: 0: Step: 23/58880, loss=0.000506, lr=0.000000
+[2022-11-13 16:41:52,316][root][INFO] - Epoch: 0: Step: 24/58880, loss=11.007508, lr=0.000000
+[2022-11-13 16:41:52,451][root][INFO] - Epoch: 0: Step: 25/58880, loss=28.570251, lr=0.000000
+[2022-11-13 16:41:52,585][root][INFO] - Epoch: 0: Step: 26/58880, loss=23.154892, lr=0.000000
+[2022-11-13 16:41:52,720][root][INFO] - Epoch: 0: Step: 27/58880, loss=2.273446, lr=0.000000
+[2022-11-13 16:41:52,855][root][INFO] - Epoch: 0: Step: 28/58880, loss=32.215431, lr=0.000000
+[2022-11-13 16:41:52,989][root][INFO] - Epoch: 0: Step: 29/58880, loss=0.000000, lr=0.000000
+[2022-11-13 16:41:53,124][root][INFO] - Epoch: 0: Step: 30/58880, loss=8.787048, lr=0.000000
+[2022-11-13 16:41:53,258][root][INFO] - Epoch: 0: Step: 31/58880, loss=10.232687, lr=0.000001
+[2022-11-13 16:41:53,393][root][INFO] - Epoch: 0: Step: 32/58880, loss=19.376060, lr=0.000001
+[2022-11-13 16:41:53,528][root][INFO] - Epoch: 0: Step: 33/58880, loss=5.732249, lr=0.000001
+[2022-11-13 16:41:53,662][root][INFO] - Epoch: 0: Step: 34/58880, loss=0.000907, lr=0.000001
+[2022-11-13 16:41:53,797][root][INFO] - Epoch: 0: Step: 35/58880, loss=10.296893, lr=0.000001
+[2022-11-13 16:41:53,931][root][INFO] - Epoch: 0: Step: 36/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:54,066][root][INFO] - Epoch: 0: Step: 37/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:54,201][root][INFO] - Epoch: 0: Step: 38/58880, loss=0.000062, lr=0.000001
+[2022-11-13 16:41:54,335][root][INFO] - Epoch: 0: Step: 39/58880, loss=9.957201, lr=0.000001
+[2022-11-13 16:41:54,471][root][INFO] - Epoch: 0: Step: 40/58880, loss=9.756612, lr=0.000001
+[2022-11-13 16:41:54,605][root][INFO] - Epoch: 0: Step: 41/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:54,740][root][INFO] - Epoch: 0: Step: 42/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:54,875][root][INFO] - Epoch: 0: Step: 43/58880, loss=9.924914, lr=0.000001
+[2022-11-13 16:41:55,010][root][INFO] - Epoch: 0: Step: 44/58880, loss=4.316627, lr=0.000001
+[2022-11-13 16:41:55,144][root][INFO] - Epoch: 0: Step: 45/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:55,279][root][INFO] - Epoch: 0: Step: 46/58880, loss=14.156648, lr=0.000001
+[2022-11-13 16:41:55,414][root][INFO] - Epoch: 0: Step: 47/58880, loss=0.236182, lr=0.000001
+[2022-11-13 16:41:55,549][root][INFO] - Epoch: 0: Step: 48/58880, loss=29.181656, lr=0.000001
+[2022-11-13 16:41:55,683][root][INFO] - Epoch: 0: Step: 49/58880, loss=10.583034, lr=0.000001
+[2022-11-13 16:41:55,818][root][INFO] - Epoch: 0: Step: 50/58880, loss=0.000006, lr=0.000001
+[2022-11-13 16:41:55,953][root][INFO] - Epoch: 0: Step: 51/58880, loss=11.397579, lr=0.000001
+[2022-11-13 16:41:56,088][root][INFO] - Epoch: 0: Step: 52/58880, loss=41.993874, lr=0.000001
+[2022-11-13 16:41:56,223][root][INFO] - Epoch: 0: Step: 53/58880, loss=0.000033, lr=0.000001
+[2022-11-13 16:41:56,358][root][INFO] - Epoch: 0: Step: 54/58880, loss=39.575386, lr=0.000001
+[2022-11-13 16:41:56,492][root][INFO] - Epoch: 0: Step: 55/58880, loss=13.490037, lr=0.000001
+[2022-11-13 16:41:56,627][root][INFO] - Epoch: 0: Step: 56/58880, loss=0.002359, lr=0.000001
+[2022-11-13 16:41:56,762][root][INFO] - Epoch: 0: Step: 57/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:56,897][root][INFO] - Epoch: 0: Step: 58/58880, loss=27.975098, lr=0.000001
+[2022-11-13 16:41:57,031][root][INFO] - Epoch: 0: Step: 59/58880, loss=3.385285, lr=0.000001
+[2022-11-13 16:41:57,166][root][INFO] - Epoch: 0: Step: 60/58880, loss=17.993469, lr=0.000001
+[2022-11-13 16:41:57,301][root][INFO] - Epoch: 0: Step: 61/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:57,435][root][INFO] - Epoch: 0: Step: 62/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:57,570][root][INFO] - Epoch: 0: Step: 63/58880, loss=44.608147, lr=0.000001
+[2022-11-13 16:41:57,705][root][INFO] - Epoch: 0: Step: 64/58880, loss=6.642205, lr=0.000001
+[2022-11-13 16:41:57,840][root][INFO] - Epoch: 0: Step: 65/58880, loss=1.753909, lr=0.000001
+[2022-11-13 16:41:57,975][root][INFO] - Epoch: 0: Step: 66/58880, loss=0.000071, lr=0.000001
+[2022-11-13 16:41:58,110][root][INFO] - Epoch: 0: Step: 67/58880, loss=27.830734, lr=0.000001
+[2022-11-13 16:41:58,245][root][INFO] - Epoch: 0: Step: 68/58880, loss=56.504219, lr=0.000001
+[2022-11-13 16:41:58,379][root][INFO] - Epoch: 0: Step: 69/58880, loss=3.184946, lr=0.000001
+[2022-11-13 16:41:58,514][root][INFO] - Epoch: 0: Step: 70/58880, loss=15.390228, lr=0.000001
+[2022-11-13 16:41:58,650][root][INFO] - Epoch: 0: Step: 71/58880, loss=4.829268, lr=0.000001
+[2022-11-13 16:41:58,786][root][INFO] - Epoch: 0: Step: 72/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:58,921][root][INFO] - Epoch: 0: Step: 73/58880, loss=38.181961, lr=0.000001
+[2022-11-13 16:41:59,056][root][INFO] - Epoch: 0: Step: 74/58880, loss=16.800888, lr=0.000001
+[2022-11-13 16:41:59,191][root][INFO] - Epoch: 0: Step: 75/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:59,326][root][INFO] - Epoch: 0: Step: 76/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:59,462][root][INFO] - Epoch: 0: Step: 77/58880, loss=22.070206, lr=0.000001
+[2022-11-13 16:41:59,596][root][INFO] - Epoch: 0: Step: 78/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:59,731][root][INFO] - Epoch: 0: Step: 79/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:41:59,866][root][INFO] - Epoch: 0: Step: 80/58880, loss=4.633109, lr=0.000001
+[2022-11-13 16:42:00,001][root][INFO] - Epoch: 0: Step: 81/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:42:00,136][root][INFO] - Epoch: 0: Step: 82/58880, loss=12.074560, lr=0.000001
+[2022-11-13 16:42:00,271][root][INFO] - Epoch: 0: Step: 83/58880, loss=48.412590, lr=0.000001
+[2022-11-13 16:42:00,406][root][INFO] - Epoch: 0: Step: 84/58880, loss=0.000002, lr=0.000001
+[2022-11-13 16:42:00,541][root][INFO] - Epoch: 0: Step: 85/58880, loss=10.719703, lr=0.000001
+[2022-11-13 16:42:00,675][root][INFO] - Epoch: 0: Step: 86/58880, loss=0.000010, lr=0.000001
+[2022-11-13 16:42:00,810][root][INFO] - Epoch: 0: Step: 87/58880, loss=0.000038, lr=0.000001
+[2022-11-13 16:42:00,945][root][INFO] - Epoch: 0: Step: 88/58880, loss=0.000000, lr=0.000001
+[2022-11-13 16:42:01,080][root][INFO] - Epoch: 0: Step: 89/58880, loss=42.654083, lr=0.000001
+[2022-11-13 16:42:01,214][root][INFO] - Epoch: 0: Step: 90/58880, loss=0.366029, lr=0.000001
+[2022-11-13 16:42:01,349][root][INFO] - Epoch: 0: Step: 91/58880, loss=22.470306, lr=0.000001
+[2022-11-13 16:42:01,484][root][INFO] - Epoch: 0: Step: 92/58880, loss=0.020896, lr=0.000001
+[2022-11-13 16:42:01,618][root][INFO] - Epoch: 0: Step: 93/58880, loss=0.000000, lr=0.000002
+[2022-11-13 16:42:01,753][root][INFO] - Epoch: 0: Step: 94/58880, loss=10.451643, lr=0.000002
+[2022-11-13 16:42:01,888][root][INFO] - Epoch: 0: Step: 95/58880, loss=68.447380, lr=0.000002
+[2022-11-13 16:42:02,022][root][INFO] - Epoch: 0: Step: 96/58880, loss=0.000086, lr=0.000002
+[2022-11-13 16:42:02,158][root][INFO] - Epoch: 0: Step: 97/58880, loss=64.115616, lr=0.000002
+[2022-11-13 16:42:02,292][root][INFO] - Epoch: 0: Step: 98/58880, loss=0.000000, lr=0.000002
+[2022-11-13 16:42:02,427][root][INFO] - Epoch: 0: Step: 99/58880, loss=17.033096, lr=0.000002
+[2022-11-13 16:42:02,562][root][INFO] - Epoch: 0: Step: 100/58880, loss=0.048330, lr=0.000002
+[2022-11-13 16:42:02,562][root][INFO] - Train batch 100
+[2022-11-13 16:42:02,562][root][INFO] - Avg. loss per last 100 batches: 11.671505
+[2022-11-13 16:42:02,697][root][INFO] - Epoch: 0: Step: 101/58880, loss=7.422061, lr=0.000002
+[2022-11-13 16:42:02,832][root][INFO] - Epoch: 0: Step: 102/58880, loss=0.000000, lr=0.000002
+[2022-11-13 16:42:02,967][root][INFO] - Epoch: 0: Step: 103/58880, loss=0.000000, lr=0.000002
+Be aware, overflowing tokens are not returned for the setting you have chosen, i.e. sequence pairs with the 'longest_first' truncation strategy. So the returned list will always be empty even if some tokens have been removed.
