@@ -23,6 +23,7 @@ if transformers.__version__.startswith("4"):
     from transformers import AdamW
     from transformers import BertTokenizer
     from transformers import RobertaTokenizer
+    from transformers import ElectraConfig, ElectraModel, ElectraTokenizer
 else:
     from transformers.modeling_bert import BertConfig, BertModel
     from transformers.optimization import AdamW
@@ -197,14 +198,127 @@ def get_optimizer_grouped(
     optimizer = AdamW(optimizer_grouped_parameters, lr=learning_rate, eps=adam_eps)
     return optimizer
 
+#### electra tokenizer를 추가하면 될 듯
+def get_electra_tokenizer(pretrained_cfg_name: str, do_lower_case: bool = True):
+    #pretrained_cfg_name == bert-base-uncased
+    #conf/encoder/*.yaml. 여기에 저장되어 있음
+    return ElectraTokenizer.from_pretrained(pretrained_cfg_name, do_lower_case=do_lower_case)
+
 
 def get_bert_tokenizer(pretrained_cfg_name: str, do_lower_case: bool = True):
+    #pretrained_cfg_name == bert-base-uncased
+    #conf/encoder/*.yaml. 여기에 저장되어 있음
     return BertTokenizer.from_pretrained(pretrained_cfg_name, do_lower_case=do_lower_case)
 
 
 def get_roberta_tokenizer(pretrained_cfg_name: str, do_lower_case: bool = True):
     # still uses HF code for tokenizer since they are the same
     return RobertaTokenizer.from_pretrained(pretrained_cfg_name, do_lower_case=do_lower_case)
+
+
+class KoElectraEncoder(ElectraModel):
+    def __init__(self, config, project_dim: int = 0):
+        ElectraModel.__init__(self, config)
+        assert config.hidden_size > 0, "Encoder hidden_size can't be zero"
+        self.encode_proj = nn.Linear(config.hidden_size, project_dim) if project_dim != 0 else None
+        self.init_weights()
+
+    @classmethod
+    def init_encoder(
+        cls, cfg_name: str, projection_dim: int = 0, dropout: float = 0.1, pretrained: bool = True, **kwargs
+    ) -> ElectraModel:
+        logger.info("Initializing HF BERT Encoder. cfg_name=%s", cfg_name)
+        '''
+        default config
+        {
+            "architectures": [
+                "ElectraForPreTraining"
+            ],
+            "attention_probs_dropout_prob": 0.1,
+            "hidden_size": 768,
+            "intermediate_size": 3072,
+            "num_attention_heads": 12,
+            "num_hidden_layers": 12,
+            "embedding_size": 768,
+            "hidden_act": "gelu",
+            "hidden_dropout_prob": 0.1,
+            "initializer_range": 0.02,
+            "layer_norm_eps": 1e-12,
+            "max_position_embeddings": 512,
+            "model_type": "electra",
+            "type_vocab_size": 2,
+            "vocab_size": 35000,
+            "pad_token_id": 0
+        }
+        '''
+        cfg = ElectraConfig.from_pretrained(cfg_name if cfg_name else "monologg/koelectra-base-v3-discriminator")
+        if dropout != 0:
+            cfg.attention_probs_dropout_prob = dropout
+            cfg.hidden_dropout_prob = dropout
+
+        if pretrained:
+            return cls.from_pretrained(cfg_name, config=cfg, project_dim=projection_dim, **kwargs)
+        else:
+            return HFBertEncoder(cfg, project_dim=projection_dim)
+
+    # last_hidden_states, hidden_states는 bert는 그대로 넘겨주지만 pooler_output은 변형해서 넘겨줌. 
+    def forward(
+        self,
+        input_ids: T,
+        token_type_ids: T,
+        attention_mask: T,
+        representation_token_pos=0,
+    ) -> Tuple[T, ...]:
+
+        #token_type_ids: pretrain 할때 [sep] 앞뒤 문장 구분해주는 id. 보통 fine tuning할때 0만 들어간다고 함.
+        out = super().forward(
+            input_ids=input_ids,
+            token_type_ids=token_type_ids,
+            attention_mask=attention_mask,
+        )
+
+        # HF >4.0 version support
+        # isinstance(data, data_type).data의 data_type이 맞는지 체크하는 함수인듯. 아래는 클래스 이름으로 체크함.
+        if transformers.__version__.startswith("4") and isinstance(
+            out,
+            transformers.modeling_outputs.BaseModelOutputWithPoolingAndCrossAttentions,
+        ):
+            logger.info(f"####CHECK####: {type(out)}")
+            sequence_output = out.last_hidden_state
+            pooled_output = None 
+            hidden_states = out.hidden_states
+        elif self.config.output_hidden_states:
+            sequence_output, pooled_output, hidden_states = out
+        else:
+            hidden_states = None
+            out = super().forward(
+                input_ids=input_ids,
+                token_type_ids=token_type_ids,
+                attention_mask=attention_mask,
+            )
+            sequence_output, pooled_output = out
+
+        # overwrite pooled_output.
+        if isinstance(representation_token_pos, int):
+            # sequence_output'shape : (batch_size, sequence_length, hidden_size)
+            pooled_output = sequence_output[:, representation_token_pos, :]
+        else:  # treat as a tensor
+            bsz = sequence_output.size(0)
+            assert representation_token_pos.size(0) == bsz, "query bsz={} while representation_token_pos bsz={}".format(
+                bsz, representation_token_pos.size(0)
+            )
+            pooled_output = torch.stack([sequence_output[i, representation_token_pos[i, 1], :] for i in range(bsz)])
+
+        if self.encode_proj:
+            #shape : (config.hidden_size, project_dim) 
+            pooled_output = self.encode_proj(pooled_output)
+
+        return sequence_output, pooled_output, hidden_states
+
+    def get_out_size(self):
+        if self.encode_proj:
+            return self.encode_proj.out_features
+        return self.config.hidden_size
 
 
 class HFBertEncoder(BertModel):
@@ -223,6 +337,7 @@ class HFBertEncoder(BertModel):
     ) -> BertModel:
         logger.info("Initializing HF BERT Encoder. cfg_name=%s", cfg_name)
         '''
+        Bert config 참고용
         {
             "architectures": [
                 "BertForMaskedLM"
