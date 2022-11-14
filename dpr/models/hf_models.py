@@ -83,6 +83,51 @@ def get_bert_biencoder_components(cfg, inference_only: bool = False, **kwargs):
     return tensorizer, biencoder, optimizer
 
 
+def get_electra_biencoder_components(cfg, inference_only: bool = False, **kwargs):
+    dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
+    '''
+    encoder_model_type: koelectra
+    pretrained_model_cfg: monologg/koelectra-base-v3-discriminator
+    projection_dim: 0
+    sequence_length: 256
+    dropout: 0.1
+    fix_ctx_encoder: false
+    pretrained: true
+    '''
+    question_encoder = KoElectraEncoder.init_encoder(
+        cfg.encoder.pretrained_model_cfg,
+        projection_dim=cfg.encoder.projection_dim,
+        dropout=dropout,
+        pretrained=cfg.encoder.pretrained,
+        **kwargs
+    )
+    ctx_encoder = KoElectraEncoder.init_encoder(
+        cfg.encoder.pretrained_model_cfg,
+        projection_dim=cfg.encoder.projection_dim,
+        dropout=dropout,
+        pretrained=cfg.encoder.pretrained,
+        **kwargs
+    )
+
+    # bool. default는 false 
+    fix_ctx_encoder = cfg.encoder.fix_ctx_encoder if hasattr(cfg.encoder, "fix_ctx_encoder") else False
+    biencoder = BiEncoder(question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
+
+    optimizer = (
+        get_optimizer(
+            biencoder,
+            learning_rate=cfg.train.learning_rate,
+            adam_eps=cfg.train.adam_eps,
+            weight_decay=cfg.train.weight_decay,
+        )
+        if not inference_only
+        else None
+    )
+
+    tensorizer = get_electra_tensorizer(cfg)
+    return tensorizer, biencoder, optimizer
+
+
 def get_bert_reader_components(cfg, inference_only: bool = False, **kwargs):
     dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
     encoder = HFBertEncoder.init_encoder(
@@ -122,6 +167,16 @@ def get_bert_tensorizer(cfg):
     return BertTensorizer(tokenizer, sequence_length)
 
 
+def get_electra_tensorizer(cfg):
+    sequence_length = cfg.encoder.sequence_length
+    pretrained_model_cfg = cfg.encoder.pretrained_model_cfg
+    tokenizer = get_electra_tokenizer(pretrained_model_cfg, do_lower_case=cfg.do_lower_case)
+    if cfg.special_tokens:
+        _add_special_tokens(tokenizer, cfg.special_tokens)
+
+    return ElectraTensorizer(tokenizer, sequence_length)
+
+
 def get_bert_tensorizer_p(
     pretrained_model_cfg: str, sequence_length: int, do_lower_case: bool = True, special_tokens: List[str] = []
 ):
@@ -159,7 +214,7 @@ def _add_special_tokens(tokenizer, special_tokens):
 def get_roberta_tensorizer(pretrained_model_cfg: str, do_lower_case: bool, sequence_length: int):
     tokenizer = get_roberta_tokenizer(pretrained_model_cfg, do_lower_case=do_lower_case)
     return RobertaTensorizer(tokenizer, sequence_length)
-
+    
 
 def get_optimizer(
     model: nn.Module,
@@ -511,6 +566,10 @@ class BertTensorizer(Tensorizer):
     def get_token_id(self, token: str) -> int:
         return self.tokenizer.vocab[token]
 
+
+class ElectraTensorizer(BertTensorizer):
+    def __init__(self, tokenizer, max_length: int, pad_to_max: bool = True):
+        super(ElectraTensorizer, self).__init__(tokenizer, max_length, pad_to_max=pad_to_max)
 
 class RobertaTensorizer(BertTensorizer):
     def __init__(self, tokenizer, max_length: int, pad_to_max: bool = True):

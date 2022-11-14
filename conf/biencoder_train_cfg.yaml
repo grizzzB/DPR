@@ -1,7 +1,8 @@
 
 # configuration groups
+# hf_bert
 defaults:
-  - encoder: hf_bert
+  - encoder: koelectra_v3
   - train: biencoder_default
   - datasets: encoder_train_default
 
