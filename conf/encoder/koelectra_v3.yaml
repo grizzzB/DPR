@@ -4,10 +4,10 @@
 encoder_model_type: koelectra
 
 # HuggingFace's config name for model initialization
-pretrained_model_cfg: monologg/koelectra-base-v3-discriminator
+pretrained_model_cfg: monologg/koelectra-small-v3-discriminator
 
 # Some encoders need to be initialized from a file
-pretrained_file:
+pretrained_file: ~/.cache/huggingface/hub/models--monologg--koelectra-small-v3-discriminator  
 
 # Extra linear layer on top of standard bert/roberta encoder
 projection_dim: 0

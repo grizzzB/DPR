@@ -128,6 +128,34 @@ def get_electra_biencoder_components(cfg, inference_only: bool = False, **kwargs
     return tensorizer, biencoder, optimizer
 
 
+def get_electra_reader_components(cfg, inference_only: bool = False, **kwargs):
+    dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
+    encoder = KoElectraEncoder.init_encoder(
+        cfg.encoder.pretrained_model_cfg,
+        projection_dim=cfg.encoder.projection_dim,
+        dropout=dropout,
+        pretrained=cfg.encoder.pretrained,
+        **kwargs
+    )
+
+    hidden_size = encoder.config.hidden_size
+    reader = Reader(encoder, hidden_size)
+
+    optimizer = (
+        get_optimizer(
+            reader,
+            learning_rate=cfg.train.learning_rate,
+            adam_eps=cfg.train.adam_eps,
+            weight_decay=cfg.train.weight_decay,
+        )
+        if not inference_only
+        else None
+    )
+
+    tensorizer = get_electra_tensorizer(cfg)
+    return tensorizer, reader, optimizer
+
+
 def get_bert_reader_components(cfg, inference_only: bool = False, **kwargs):
     dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
     encoder = HFBertEncoder.init_encoder(
@@ -214,7 +242,7 @@ def _add_special_tokens(tokenizer, special_tokens):
 def get_roberta_tensorizer(pretrained_model_cfg: str, do_lower_case: bool, sequence_length: int):
     tokenizer = get_roberta_tokenizer(pretrained_model_cfg, do_lower_case=do_lower_case)
     return RobertaTensorizer(tokenizer, sequence_length)
-    
+
 
 def get_optimizer(
     model: nn.Module,
@@ -282,7 +310,7 @@ class KoElectraEncoder(ElectraModel):
     def init_encoder(
         cls, cfg_name: str, projection_dim: int = 0, dropout: float = 0.1, pretrained: bool = True, **kwargs
     ) -> ElectraModel:
-        logger.info("Initializing HF BERT Encoder. cfg_name=%s", cfg_name)
+        logger.info("Initializing KoElectra Encoder. cfg_name=%s", cfg_name)
         '''
         default config
         {
@@ -310,11 +338,13 @@ class KoElectraEncoder(ElectraModel):
         if dropout != 0:
             cfg.attention_probs_dropout_prob = dropout
             cfg.hidden_dropout_prob = dropout
+        # tmp
+        cfg.output_hidden_states=True
 
         if pretrained:
             return cls.from_pretrained(cfg_name, config=cfg, project_dim=projection_dim, **kwargs)
         else:
-            return HFBertEncoder(cfg, project_dim=projection_dim)
+            return KoElectraEncoder(cfg, project_dim=projection_dim)
 
     # last_hidden_states, hidden_states는 bert는 그대로 넘겨주지만 pooler_output은 변형해서 넘겨줌. 
     def forward(
@@ -336,14 +366,14 @@ class KoElectraEncoder(ElectraModel):
         # isinstance(data, data_type).data의 data_type이 맞는지 체크하는 함수인듯. 아래는 클래스 이름으로 체크함.
         if transformers.__version__.startswith("4") and isinstance(
             out,
-            transformers.modeling_outputs.BaseModelOutputWithPoolingAndCrossAttentions,
+            transformers.modeling_outputs.BaseModelOutputWithPastAndCrossAttentions,
         ):
-            logger.info(f"####CHECK####: {type(out)}")
+            #logger.info(f"####CHECK####: {type(out)}")
             sequence_output = out.last_hidden_state
             pooled_output = None 
             hidden_states = out.hidden_states
         elif self.config.output_hidden_states:
-            sequence_output, pooled_output, hidden_states = out
+            sequence_output, hidden_states = out
         else:
             hidden_states = None
             out = super().forward(
@@ -351,7 +381,8 @@ class KoElectraEncoder(ElectraModel):
                 token_type_ids=token_type_ids,
                 attention_mask=attention_mask,
             )
-            sequence_output, pooled_output = out
+            logger.info(f"Check === {type(out)} ")
+            sequence_output = out
 
         # overwrite pooled_output.
         if isinstance(representation_token_pos, int):
