@@ -1,8 +1,14 @@
-dpr/downloads/data
-downloads
+downloads/data/aihub/*
+downloads/data/gold_passages_info/*
+downloads/data/reader/*
+downloads/data/retriever/*
+downloads/data/retriever_results/*
+downloads/data/wikipedia_split/*
+downloads/data/raw_korquad/*
+
 outputs
 
-
+.DS_Store
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
