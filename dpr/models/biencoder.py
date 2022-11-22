@@ -191,16 +191,20 @@ class BiEncoder(nn.Module):
                 random.shuffle(neg_ctxs)
                 random.shuffle(hard_neg_ctxs)
 
+            # hard_neg_ctxs가 없으면 일반 neg_ctxs에서 가져다 씀.
             if hard_neg_fallback and len(hard_neg_ctxs) == 0:
                 hard_neg_ctxs = neg_ctxs[0:num_hard_negatives]
 
+            # hard 먼저 채우고 남은 건 일반 negatives로 채운다. 근데 0부터 시작하면 hard랑 겹치는데? hard가 걍 의미 없어지는듯?
             neg_ctxs = neg_ctxs[0:num_other_negatives]
+            # 코딩 실수인 듯.
             hard_neg_ctxs = hard_neg_ctxs[0:num_hard_negatives]
 
             all_ctxs = [positive_ctx] + neg_ctxs + hard_neg_ctxs
             hard_negatives_start_idx = 1
             hard_negatives_end_idx = 1 + len(hard_neg_ctxs)
 
+            # length == 0
             current_ctxs_len = len(ctx_tensors)
 
             sample_ctxs_tensors = [
@@ -208,7 +212,9 @@ class BiEncoder(nn.Module):
                 for ctx in all_ctxs
             ]
 
+            # tensorize 된 sample들을 리스트에 업데이트한다.
             ctx_tensors.extend(sample_ctxs_tensors)
+            # index리스트. hard_negative, positive만 쓰네??
             positive_ctx_indices.append(current_ctxs_len)
             hard_neg_ctx_indices.append(
                 [
@@ -219,7 +225,7 @@ class BiEncoder(nn.Module):
                     )
                 ]
             )
-
+            # first passgaes, and then question tokens.
             if query_token:
                 # TODO: tmp workaround for EL, remove or revise
                 if query_token == "[START_ENT]":

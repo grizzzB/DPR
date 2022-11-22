@@ -97,6 +97,7 @@ class BiEncoderTrainer(object):
         self.best_validation_result = None
         self.best_cp_name = None
         self.cfg = cfg
+        # 데이터를 로드할 수 있는 객체. 경로, normalize 등등 수행
         self.ds_cfg = BiencoderDatasetsCfg(cfg)
 
         if saved_state:
@@ -112,8 +113,9 @@ class BiEncoderTrainer(object):
         shuffle_seed: int = 0,
         offset: int = 0,
         rank: int = 0,
-    ):
+    ) -> MultiSetDataIterator:
 
+        # dataset split. hydra가 split 해주나? 
         hydra_datasets = self.ds_cfg.train_datasets if is_train_set else self.ds_cfg.dev_datasets
         sampling_rates = self.ds_cfg.sampling_rates
 
@@ -123,10 +125,11 @@ class BiEncoderTrainer(object):
         )
 
         single_ds_iterator_cls = LocalShardedDataIterator if self.cfg.local_shards_dataloader else ShardedDataIterator
-
+        # !! multi GPUs. if rank < 0, single GPU.
+        # 샤드를 나눔. 검색 때문인거 같은데, 따로 저장도 하는 건가???
         sharded_iterators = [
             single_ds_iterator_cls(
-                ds,
+                ds, # JsonQADataset 객체
                 shard_id=self.shard_id,
                 num_shards=self.distributed_factor,
                 batch_size=batch_size,
@@ -466,6 +469,8 @@ class BiEncoderTrainer(object):
             data_iteration = train_data_iterator.get_iteration()
             random.seed(seed + epoch + data_iteration)
 
+            # create batches !! 
+            # custum model 클래스에 정의됨
             biencoder_batch = biencoder.create_biencoder_input(
                 samples_batch,
                 self.tensorizer,

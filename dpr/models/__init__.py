@@ -67,6 +67,7 @@ def init_hf_roberta_tenzorizer(args, **kwargs):
     return get_roberta_tensorizer(args.encoder.pretrained_model_cfg, args.do_lower_case, args.encoder.sequence_length)
 
 
+# tensorizer, biencoder, optimizer 세팅, 생성하는 함수들이 사전에 정의
 BIENCODER_INITIALIZERS = {
     "hf_bert": init_hf_bert_biencoder,
     "koelectra": init_electra_biencoder,

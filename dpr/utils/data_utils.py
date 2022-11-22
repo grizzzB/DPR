@@ -44,7 +44,7 @@ def read_data_from_json_files(paths: List[str]) -> List:
         with open(path, "r", encoding="utf-8") as f:
             logger.info("Reading file %s" % path)
             data = json.load(f)
-            results.extend(data)
+            results.extend(data) # 쭉 이어 붙임. + 와 동일
             logger.info("Aggregated data size: {}".format(len(results)))
     return results
 
@@ -148,7 +148,7 @@ class RepSpecificTokenSelector(RepTokenSelector):
 
 DEFAULT_SELECTOR = RepStaticPosTokenSelector()
 
-
+# Retrieval data !!
 class Dataset(torch.utils.data.Dataset):
     def __init__(
         self,
@@ -178,11 +178,13 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, index):
+        # 데이터셋에서 특정 1개 샘플을 들고 오는 함수
         raise NotImplementedError
 
     def _process_query(self, query: str):
         # as of now, always normalize query
         query = normalize_question(query)
+        #? self.query_special_suffix??
         if self.query_special_suffix and not query.endswith(self.query_special_suffix):
             query += self.query_special_suffix
 
@@ -329,7 +331,7 @@ class LocalShardedDataIterator(ShardedDataIterator):
         self.dataset.load_data(start_pos=self.shard_start_idx, end_pos=self.shard_end_idx)
         logger.info("Sharded dataset data %d", len(self.dataset))
 
-    def get_shard_indices(self, epoch: int):
+def get_shard_indices(self, epoch: int):
         indices = list(range(len(self.dataset)))
         if self.shuffle:
             # to be able to resume, same shuffling should be used when starting from a failed/stopped iteration

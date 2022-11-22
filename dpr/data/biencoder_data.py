@@ -31,7 +31,7 @@ class BiEncoderSample(object):
     negative_passages: List[BiEncoderPassage]
     hard_negative_passages: List[BiEncoderPassage]
 
-
+# Retrieval data !!
 class JsonQADataset(Dataset):
     def __init__(
         self,
@@ -45,6 +45,7 @@ class JsonQADataset(Dataset):
         # tmp: for cc-net results only
         exclude_gold: bool = False,
     ):
+        #self.data 는 super에 있음.
         super().__init__(
             selector,
             special_token=special_token,
@@ -55,6 +56,7 @@ class JsonQADataset(Dataset):
         self.file = file
         self.data_files = []
         self.normalize = normalize
+        #
         self.exclude_gold = exclude_gold
 
     def calc_total_data_len(self):
@@ -64,8 +66,10 @@ class JsonQADataset(Dataset):
         return len(self.data)
 
     def load_data(self, start_pos: int = -1, end_pos: int = -1):
+        # ShardedDataIterator or LocalShardedDataIterator 에서 호출해서 로드함
         if not self.data:
             self._load_all_data()
+        # shard마다 단락을 나누기 위한 부분으로 보임
         if start_pos >= 0 and end_pos >= 0:
             logger.info("Selecting subset range from %d to %d", start_pos, end_pos)
             self.data = self.data[start_pos:end_pos]
@@ -73,14 +77,22 @@ class JsonQADataset(Dataset):
     def _load_all_data(self):
         self.data_files = get_dpr_files(self.file)
         logger.info("Data files: %s", self.data_files)
+        # json들 전부 읽고 list extend 함.
         data = read_data_from_json_files(self.data_files)
         # filter those without positive ctx
+        # json은 bm25 한번 돌린 결과를 몽창 넣어둔 것. 그래서 valid하지 않은 데이터도 있는 것임.
         self.data = [r for r in data if len(r["positive_ctxs"]) > 0]
         logger.info("Total cleaned data size: %d", len(self.data))
 
     def __getitem__(self, index) -> BiEncoderSample:
+        # 언제 불리는 거지??
         json_sample = self.data[index]
         r = BiEncoderSample()
+        # normalize
+        # 특수문자 처리들. 
+        # 1.쌍따옴표로 시작하거나 끝날 때 제외시킴
+        # 2. \n -> white space로
+        # 3. ' 문자 변경
         r.query = self._process_query(json_sample["question"])
 
         positive_ctxs = json_sample["positive_ctxs"]
@@ -92,11 +104,14 @@ class JsonQADataset(Dataset):
         negative_ctxs = json_sample["negative_ctxs"] if "negative_ctxs" in json_sample else []
         hard_negative_ctxs = json_sample["hard_negative_ctxs"] if "hard_negative_ctxs" in json_sample else []
 
+        # initialize title feild.
         for ctx in positive_ctxs + negative_ctxs + hard_negative_ctxs:
             if "title" not in ctx:
                 ctx["title"] = None
 
+        # inner function
         def create_passage(ctx: dict):
+            #named tuple. enum 비슷
             return BiEncoderPassage(
                 normalize_passage(ctx["text"]) if self.normalize else ctx["text"],
                 ctx["title"],
@@ -107,7 +122,7 @@ class JsonQADataset(Dataset):
         r.hard_negative_passages = [create_passage(ctx) for ctx in hard_negative_ctxs]
         return r
 
-
+# json line. line by line으로 데이터가 있는 경우인 듯.
 class JsonlQADataset(JsonQADataset):
     def __init__(
         self,

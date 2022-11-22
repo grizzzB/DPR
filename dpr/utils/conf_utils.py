@@ -9,7 +9,7 @@ from dpr.data.biencoder_data import JsonQADataset
 
 logger = logging.getLogger(__name__)
 
-
+# 최상단 데이터 로드 함수
 class BiencoderDatasetsCfg(object):
     def __init__(self, cfg: DictConfig):
         ds_cfg = cfg.datasets
@@ -34,6 +34,7 @@ def _init_datasets(datasets_names, ds_cfg: DictConfig):
 def _init_dataset(name: str, ds_cfg: DictConfig):
     if os.path.exists(name):
         # use default biencoder json class
+        # json 데이터 읽고 샘플링 하는 함수
         return JsonQADataset(name)
     elif glob.glob(name):
         files = glob.glob(name)
