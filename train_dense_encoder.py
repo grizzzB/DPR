@@ -77,8 +77,10 @@ class BiEncoderTrainer(object):
             set_cfg_params_from_state(saved_state.encoder_params, cfg)
 
         # get models
+        # BiEncoder object
         tensorizer, model, optimizer = init_biencoder_components(cfg.encoder.encoder_model_type, cfg)
-
+        # 분산 처리 관련 옵션
+        # 분기 처리해서 torch pararellel 함수 사용. 모델을 파라메터로 넘기는듯
         model, optimizer = setup_for_distributed_mode(
             model,
             optimizer,
@@ -88,6 +90,7 @@ class BiEncoderTrainer(object):
             cfg.fp16,
             cfg.fp16_opt_level,
         )
+        # 
         self.biencoder = model
         self.optimizer = optimizer
         self.tensorizer = tensorizer
@@ -159,25 +162,31 @@ class BiEncoderTrainer(object):
             offset=self.start_batch,
             rank=cfg.local_rank,
         )
+        # self.max_iterations를 반환함. 굳이 왜 이걸로 가져오는지?
         max_iterations = train_iterator.get_max_iterations()
         logger.info("  Total iterations per epoch=%d", max_iterations)
         if max_iterations == 0:
             logger.warning("No data found for training.")
             return
-
+        # 위에선 함수로 값을 가져오면서 여긴 variable을 직접 가져옴..
+        # accumluation step이 커지면 몫이 작아짐. 더 업데이트를 늦게 하게 됨(gradient가 늦게 감)
         updates_per_epoch = train_iterator.max_iterations // cfg.train.gradient_accumulation_steps
 
         total_updates = updates_per_epoch * cfg.train.num_train_epochs
         logger.info(" Total updates=%d", total_updates)
         warmup_steps = cfg.train.warmup_steps
 
+        # torch에서 쓰는 컨셉인듯함
+        # step이 커지면 lr을 줄인다던가 dynamic하게 가는 식.
         if self.scheduler_state:
             # TODO: ideally we'd want to just call
             # scheduler.load_state_dict(self.scheduler_state)
             # but it doesn't work properly as of now
 
+            # 학습을 이어서 하고 싶을때 쓰는 거 같음. save & load를 한다고 함
+            # warmup 때 linear하게 증가 이후 linear하게 감소한다고 함
             logger.info("Loading scheduler state %s", self.scheduler_state)
-            shift = int(self.scheduler_state["last_epoch"])
+            shift = int(self.scheduler_state["last_epoch"]) # 과거 기록일 듯 
             logger.info("Steps shift %d", shift)
             scheduler = get_schedule_linear(
                 self.optimizer,
@@ -186,11 +195,14 @@ class BiEncoderTrainer(object):
                 steps_shift=shift,
             )
         else:
+            # 첨부터 학습하는 경우
             scheduler = get_schedule_linear(self.optimizer, warmup_steps, total_updates)
 
+        # 중간 결과 점검 세팅
         eval_step = math.ceil(updates_per_epoch / cfg.train.eval_per_epoch)
         logger.info("  Eval step = %d", eval_step)
         logger.info("***** Training *****")
+
 
         for epoch in range(self.start_epoch, int(cfg.train.num_train_epochs)):
             logger.info("***** Epoch %d *****", epoch)
@@ -450,20 +462,27 @@ class BiEncoderTrainer(object):
         num_hard_negatives = cfg.train.hard_negatives
         num_other_negatives = cfg.train.other_negatives
         seed = cfg.seed
-        self.biencoder.train()
+        self.biencoder.train() # torch에서 모델은 train 모드로 set하는 부분.
         epoch_batches = train_data_iterator.max_iterations
         data_iteration = 0
 
+        # 모델관련 단순 처리임.
+        #module 이 있으면 argument.module. 리턴. torch 버전 문제인가? 
         biencoder = get_model_obj(self.biencoder)
         dataset = 0
+        # ??? shape이 헷갈림. shard가 끼어드니까 더 헷갈림
+        # batch 돌떄 yield 되는 (next_item, source_idx).
         for i, samples_batch in enumerate(train_data_iterator.iterate_ds_data(epoch=epoch)):
+            # (next_item, source_idx)
+            # (현재 데이터셋, 해당 index)
             if isinstance(samples_batch, Tuple):
+                # next batch update.
                 samples_batch, dataset = samples_batch
 
             ds_cfg = self.ds_cfg.train_datasets[dataset]
             special_token = ds_cfg.special_token
             encoder_type = ds_cfg.encoder_type
-            shuffle_positives = ds_cfg.shuffle_positives
+            shuffle_positives = ds_cfg.shuffle_positivesz
 
             # to be able to resume shuffled ctx- pools
             data_iteration = train_data_iterator.get_iteration()
@@ -486,7 +505,7 @@ class BiEncoderTrainer(object):
             from dpr.utils.data_utils import DEFAULT_SELECTOR
 
             selector = ds_cfg.selector if ds_cfg else DEFAULT_SELECTOR
-
+            # ?? torch와 연관이 있는 값은듯. model에 파라메터로 넘겨줌
             rep_positions = selector.get_positions(biencoder_batch.question_ids, self.tensorizer)
 
             loss_scale = cfg.loss_scale_factors[dataset] if cfg.loss_scale_factors else None
@@ -502,6 +521,7 @@ class BiEncoderTrainer(object):
 
             epoch_correct_predictions += correct_cnt
             epoch_loss += loss.item()
+            # ??
             rolling_train_loss += loss.item()
 
             if cfg.fp16:
@@ -515,6 +535,7 @@ class BiEncoderTrainer(object):
                 if cfg.train.max_grad_norm > 0:
                     torch.nn.utils.clip_grad_norm_(self.biencoder.parameters(), cfg.train.max_grad_norm)
 
+            # update gradient 
             if (i + 1) % cfg.train.gradient_accumulation_steps == 0:
                 self.optimizer.step()
                 scheduler.step()
@@ -713,6 +734,7 @@ def _do_biencoder_fwd_pass(
             input.ctx_segments,
             ctx_attn_mask,
             encoder_type=encoder_type,
+            # ??
             representation_token_pos=rep_positions,
         )
     else:
@@ -725,6 +747,7 @@ def _do_biencoder_fwd_pass(
                 input.ctx_segments,
                 ctx_attn_mask,
                 encoder_type=encoder_type,
+                # ??
                 representation_token_pos=rep_positions,
             )
 

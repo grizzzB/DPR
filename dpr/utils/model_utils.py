@@ -41,6 +41,7 @@ def setup_for_distributed_mode(
     fp16_opt_level: str = "O1",
 ) -> Tuple[nn.Module, torch.optim.Optimizer]:
     model.to(device)
+    # 연산관련 세팅
     if fp16:
         try:
             import apex
@@ -52,6 +53,7 @@ def setup_for_distributed_mode(
 
         model, optimizer = amp.initialize(model, optimizer, opt_level=fp16_opt_level)
 
+    # torch에 옵션을 쓰는것.
     if n_gpu > 1:
         model = torch.nn.DataParallel(model)
 

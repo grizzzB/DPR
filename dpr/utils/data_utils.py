@@ -308,11 +308,13 @@ class ShardedDataIterator(object):
 
     def iterate_ds_sampled_data(self, num_iterations: int, epoch: int = 0) -> Iterator[List]:
         self.iteration = 0
+        # 샤드에 배정된 index 리스트
         shard_indices = self.get_shard_indices(epoch)
-        cycle_it = itertools.cycle(shard_indices)
+        cycle_it = itertools.cycle(shard_indices) # 계속 로테이션 도는 함수
         for i in range(num_iterations):
+            # batch크기만큼 shard배정된 index에 해당되는 데이터 배정. (중복도 되는 건가?)
             items_idxs = [next(cycle_it) for _ in range(self.batch_size)]
-            self.iteration += 1
+            self.iteration += 1 # 로그 찍을 때 쓰는 변수
             items = [self.dataset[idx] for idx in items_idxs]
             yield items
 
@@ -374,6 +376,7 @@ class MultiSetDataIterator(object):
         if sampling_rates:
             self.max_its_pr_ds = [int(ds.max_iterations_num() * sampling_rates[i]) for i, ds in enumerate(datasets)]
         else:
+            # self.max_iterations int가 리턴됨
             self.max_its_pr_ds = [ds.max_iterations_num() for ds in datasets]
 
         self.max_iterations = sum(self.max_its_pr_ds)
@@ -397,6 +400,7 @@ class MultiSetDataIterator(object):
 
         data_src_indices = []
         iterators = []
+        # 데이터셋 마다, iteration 수. dataset은 숫자로 구분
         for source, src_its in enumerate(self.max_its_pr_ds):
             logger.info(
                 "rank=%d; Multi set iteration: source %d, batches to be taken: %s",
@@ -404,10 +408,14 @@ class MultiSetDataIterator(object):
                 source,
                 src_its,
             )
+            # [0,0,0,0,1,1,1,1,1,...]
             data_src_indices.extend([source] * src_its)
-
+            # self.iterables == datasets == BiEncoderSample객체들의 리스트.
+            # 길이는 iteration 수 만큼
+            #BiEncoderSample 객체 리스트. 데이터 리스트. Batch size * src_its 길이
             iterators.append(self.iterables[source].iterate_ds_sampled_data(src_its, epoch=epoch))
 
+        # 여러 데이터 셋의 데이터를 섞어버림
         if self.shuffle:
             # to be able to resume, same shuffling should be used when starting from a failed/stopped iteration
             epoch_rnd = random.Random(self.shuffle_seed + epoch)
@@ -415,10 +423,12 @@ class MultiSetDataIterator(object):
 
         logger.info("rank=%d; data_src_indices len=%d", self.rank, len(data_src_indices))
         for i, source_idx in enumerate(data_src_indices):
-            it = iterators[source_idx]
-            next_item = next(it, None)
+            #[dataset 종류, batch size * src_its]
+            it = iterators[source_idx] # 데이터셋 선택
+            next_item = next(it, None) # index 으로 출발
             if next_item is not None:
                 self.iteration += 1
+                # return 
                 yield (next_item, source_idx)
             else:
                 logger.warning("rank=%d; Next item in the source %s is None", self.rank, source_idx)
@@ -430,7 +440,7 @@ class MultiSetDataIterator(object):
             self.rank,
             [it.iteration for it in self.iterables],
         )
-        [next(it, None) for it in iterators]
+        #[next(it, None) for it in iterators]
 
         # TODO: clear iterators in some non-hacky way
         for it in self.iterables:

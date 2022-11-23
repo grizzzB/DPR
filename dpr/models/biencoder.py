@@ -172,17 +172,19 @@ class BiEncoder(nn.Module):
         positive_ctx_indices = []
         hard_neg_ctx_indices = []
 
+        # batch 단위로 만들어짐
         for sample in samples:
             # ctx+ & [ctx-] composition
             # as of now, take the first(gold) ctx+ only
 
             if shuffle and shuffle_positives:
                 positive_ctxs = sample.positive_passages
+                # 여러개가 있기 때문에 하나만 고르는 것
                 positive_ctx = positive_ctxs[np.random.choice(len(positive_ctxs))]
             else:
                 positive_ctx = sample.positive_passages[0]
 
-            neg_ctxs = sample.negative_passages
+            neg_ctxs = sample.negative_passages # len == 0인 경우도 많음.
             hard_neg_ctxs = sample.hard_negative_passages
             question = sample.query
             # question = normalize_question(sample.query)
