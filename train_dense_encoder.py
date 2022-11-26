@@ -100,7 +100,7 @@ class BiEncoderTrainer(object):
         self.best_validation_result = None
         self.best_cp_name = None
         self.cfg = cfg
-        # 데이터를 로드할 수 있는 객체. 경로, normalize 등등 수행
+        # 데이터를 로드할 수 있는 객체. 경로, normalize 등등 수행 정의
         self.ds_cfg = BiencoderDatasetsCfg(cfg)
 
         if saved_state:
@@ -479,12 +479,14 @@ class BiEncoderTrainer(object):
                 # next batch update.
                 samples_batch, dataset = samples_batch
 
+            # BiencoderDatasetsCfg 객체
+            # encoder_train_default.yaml에 __target__에 정의된 JsonQADataset 를 들고오는듯.
             ds_cfg = self.ds_cfg.train_datasets[dataset]
             special_token = ds_cfg.special_token
             encoder_type = ds_cfg.encoder_type
-            shuffle_positives = ds_cfg.shuffle_positivesz
+            shuffle_positives = ds_cfg.shuffle_positives
 
-            # to be able to resume shuffled ctx- pools
+            # to be able to resume shuffled ctx- pools == shuffle을 새로하겠다
             data_iteration = train_data_iterator.get_iteration()
             random.seed(seed + epoch + data_iteration)
 
@@ -498,14 +500,18 @@ class BiEncoderTrainer(object):
                 num_other_negatives,
                 shuffle=True,
                 shuffle_positives=shuffle_positives,
-                query_token=special_token,
+                query_token=special_token, # split되지 않는 토큰을 컨피그로 넣는다고함.
             )
 
             # get the token to be used for representation selection
             from dpr.utils.data_utils import DEFAULT_SELECTOR
 
+            # position id를 반환해주는 함수. torch쪽에선 정의된 게 없음.
+            # 컨피그로 넘겨주는 부분이 없음. 디폴트만 쓰이는 듯. config 객체가 들어감.
+            # position을 반환하는 함수만 있는데, 그 값을 초기화하는 부분이 없어보임. default는 0. 그러니 결국 0이 넘어가는 셈
+            # 뭐하는 함수일까.. 실제 역할을 하고 있나?
             selector = ds_cfg.selector if ds_cfg else DEFAULT_SELECTOR
-            # ?? torch와 연관이 있는 값은듯. model에 파라메터로 넘겨줌
+            # question id를 알려주는 건가?
             rep_positions = selector.get_positions(biencoder_batch.question_ids, self.tensorizer)
 
             loss_scale = cfg.loss_scale_factors[dataset] if cfg.loss_scale_factors else None
@@ -521,7 +527,7 @@ class BiEncoderTrainer(object):
 
             epoch_correct_predictions += correct_cnt
             epoch_loss += loss.item()
-            # ??
+            # 
             rolling_train_loss += loss.item()
 
             if cfg.fp16:
@@ -722,10 +728,12 @@ def _do_biencoder_fwd_pass(
 
     input = BiEncoderBatch(**move_to_device(input._asdict(), cfg.device))
 
+    # attention_mask 용도
     q_attn_mask = tensorizer.get_attn_mask(input.question_ids)
     ctx_attn_mask = tensorizer.get_attn_mask(input.context_ids)
 
     if model.training:
+        # forward가 호출됨.
         model_out = model(
             input.question_ids,
             input.question_segments,
@@ -751,6 +759,8 @@ def _do_biencoder_fwd_pass(
                 representation_token_pos=rep_positions,
             )
 
+    #q_pooled_out, ctx_pooled_out
+    #mini-batch라서 local이라고 하나봄
     local_q_vector, local_ctx_vectors = model_out
 
     loss_function = BiEncoderNllLoss()
