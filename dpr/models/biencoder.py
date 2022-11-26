@@ -70,12 +70,14 @@ class BiEncoder(nn.Module):
         fix_ctx_encoder: bool = False,
     ):
         super(BiEncoder, self).__init__()
+        # 처음 init에서 모델 생성할떄 초기화.
         self.question_model = question_model
         self.ctx_model = ctx_model
         self.fix_q_encoder = fix_q_encoder
         self.fix_ctx_encoder = fix_ctx_encoder
 
     @staticmethod
+    # 모델에 데이터 들어가는 부분
     def get_representation(
         sub_model: nn.Module,
         ids: T,
@@ -114,6 +116,7 @@ class BiEncoder(nn.Module):
 
         return sequence_output, pooled_output, hidden_states
 
+    # 모델 객체 자신을 호출하면 호출됨. callable이라서? python 문법상 어떻게 동작하는지 모르겠음.
     def forward(
         self,
         question_ids: T,
@@ -202,13 +205,16 @@ class BiEncoder(nn.Module):
             # 코딩 실수인 듯.
             hard_neg_ctxs = hard_neg_ctxs[0:num_hard_negatives]
 
-            all_ctxs = [positive_ctx] + neg_ctxs + hard_neg_ctxs
+            # 기존 : [positive_ctx] + hard_neg_ctxs + neg_ctxs 
+            all_ctxs = [positive_ctx] + hard_neg_ctxs + neg_ctxs
+            # 기존대로 라면 idx 1인건 틀린게 맞다고함.
             hard_negatives_start_idx = 1
             hard_negatives_end_idx = 1 + len(hard_neg_ctxs)
 
             # length == 0
             current_ctxs_len = len(ctx_tensors)
 
+            # num_other_negatives == 0 이라, positive 1개 hard_negative 1개가 들어감
             sample_ctxs_tensors = [
                 tensorizer.text_to_tensor(ctx.text, title=ctx.title if (insert_title and ctx.title) else None)
                 for ctx in all_ctxs
@@ -217,7 +223,9 @@ class BiEncoder(nn.Module):
             # tensorize 된 sample들을 리스트에 업데이트한다.
             ctx_tensors.extend(sample_ctxs_tensors)
             # index리스트. hard_negative, positive만 쓰네??
+            # 맨 첫번쨰 하나만 positive.
             positive_ctx_indices.append(current_ctxs_len)
+            # positive 바로 다음 index는 hard_negative. 개수만큼 들고와서 list로. default 값으로 1.
             hard_neg_ctx_indices.append(
                 [
                     i
@@ -238,12 +246,14 @@ class BiEncoder(nn.Module):
             else:
                 question_tensors.append(tensorizer.text_to_tensor(question))
 
+        # 여기서 조합되나?
         ctxs_tensor = torch.cat([ctx.view(1, -1) for ctx in ctx_tensors], dim=0)
         questions_tensor = torch.cat([q.view(1, -1) for q in question_tensors], dim=0)
 
         ctx_segments = torch.zeros_like(ctxs_tensor)
         question_segments = torch.zeros_like(questions_tensor)
 
+        # neg_ctxs는 쓰지도 않음...
         return BiEncoderBatch(
             questions_tensor,
             question_segments,

@@ -159,6 +159,7 @@ class Dataset(torch.utils.data.Dataset):
         encoder_type: str = None,
     ):
         if selector:
+            # hydra object 생성
             self.selector = hydra.utils.instantiate(selector)
         else:
             self.selector = DEFAULT_SELECTOR
