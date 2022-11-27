@@ -59,6 +59,13 @@ def init_hf_bert_tenzorizer(args, **kwargs):
 
     return get_bert_tensorizer(args)
 
+def init_electra_tenzorizer(args, **kwargs):
+    if importlib.util.find_spec("transformers") is None:
+        raise RuntimeError("Please install transformers lib")
+    from .hf_models import get_electra_tensorizer
+
+    return get_electra_tensorizer(args)
+
 
 def init_hf_roberta_tenzorizer(args, **kwargs):
     if importlib.util.find_spec("transformers") is None:
@@ -81,6 +88,7 @@ READER_INITIALIZERS = {
 
 TENSORIZER_INITIALIZERS = {
     "hf_bert": init_hf_bert_tenzorizer,
+    "koelectra": init_electra_tenzorizer,
     "hf_roberta": init_hf_roberta_tenzorizer,
     "pytext_bert": init_hf_bert_tenzorizer,  # using HF's code as of now
     "fairseq_roberta": init_hf_roberta_tenzorizer,  # using HF's code as of now
@@ -101,6 +109,7 @@ def init_biencoder_components(encoder_type: str, args, **kwargs):
 def init_reader_components(encoder_type: str, args, **kwargs):
     return init_comp(READER_INITIALIZERS, encoder_type, args, **kwargs)
 
-
+# 쓰이지 않음. 따라서 TENSORIZER_INITIALIZERS도 호출 안됨. 
+# init_biencoder_components 에서 직접 tokenizer 생성해서 사용함.
 def init_tenzorizer(encoder_type: str, args, **kwargs):
     return init_comp(TENSORIZER_INITIALIZERS, encoder_type, args, **kwargs)

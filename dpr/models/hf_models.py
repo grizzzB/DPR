@@ -529,6 +529,7 @@ class HFBertEncoder(BertModel):
 
 # tokenize->tenserize 하는 class. 전처리 용인 듯함.
 class BertTensorizer(Tensorizer):
+    # BertTokenizer == ElectrTokenizer 타입이 같은 모양
     def __init__(self, tokenizer: BertTokenizer, max_length: int, pad_to_max: bool = True):
         self.tokenizer = tokenizer
         self.max_length = max_length
