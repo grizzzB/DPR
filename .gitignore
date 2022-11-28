@@ -6,6 +6,7 @@ downloads/data/retriever_results/*
 downloads/data/wikipedia_split/*
 downloads/data/raw_korquad/*
 
+kor_data
 outputs
 
 .DS_Store
@@ -59,3 +60,4 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+.json_out.log.swp

@@ -1,0 +1,107 @@
+{
+  "settings":{
+      "index": {
+        "number_of_shards": 2,
+        "number_of_replicas": 1,
+        "max_ngram_diff": "30",
+        "similarity": {
+          "bool_sim": {
+            "type": "boolean"
+          },
+          "custom_sim": {
+            "type": "scripted",
+            "script": {
+              "source": "return query.boost"
+            }
+          },
+          "my_sim": {
+            "type": "BM25",
+            "k1": "1",
+            "b": "0.85"
+          },
+          "dfr_sim": {
+            "type": "DFR",
+            "basic_model": "g",
+            "after_effect": "l",
+            "normalization": "h2",
+            "normalization.h2.c": "3.0"
+          }
+        }
+      },
+      "analysis": {
+        "normalizer": {
+          "default_normalizer": {
+            "type": "custom",
+            "filter": ["lowercase", "asciifolding"]
+          }
+        },
+        "tokenizer": {
+          "nori": {
+            "type": "nori_tokenizer",
+            "decompound_mode": "discard",
+            "user_dictionary_rules": [
+              "카카오뱅크",
+              "자동차",
+              "핸드폰"
+            ]
+          },
+          "ngram": {
+            "type": "ngram",
+            "min_gram": 1,
+            "max_gram": 5
+          }
+        },
+        "analyzer": {
+          "token_ngram_analyzer": {
+            "type": "custom",
+            "tokenizer": "whitespace",
+            "filter": ["lowercase","asciifolding","shingles_filter"]
+          },
+          "uni_nori_analyzer": {
+            "type": "custom",
+            "tokenizer": "nori",
+            "filter": ["pos_filter", "stop_filter","lowercase","asciifolding", "unique"]
+          },
+          "nori_analyzer": {
+            "type": "custom",
+            "tokenizer": "nori",
+            "filter": ["pos_filter", "stop_filter","lowercase","asciifolding"]
+          },
+          "ngram_analyzer": {
+            "type": "custom",
+            "tokenizer": "ngram",
+            "filter": ["lowercase","asciifolding","unique"]
+          }
+
+        },
+        "filter": {
+          "stop_filter": {
+            "type": "stop",
+            "stopwords": ["있", "뭣", "하", "대하"],
+            "ignore_case": true
+          },
+          "synonym_filter": {
+            "type": "synonym",
+            "synonyms": []
+          },
+          "pos_filter": {
+            "type": "nori_part_of_speech",
+            "stoptags": [
+              "E", "XSN", "XSV", "IC", "J", "VCP", "MAJ",
+              "VX","SSO", "SSC", "SP", "SF", "SC"
+            ]
+          },
+          "ngrams_filter": {
+            "type": "ngram",
+            "min_gram": 1,
+            "max_gram": 5
+          },
+          "shingles_filter": {
+            "type": "shingle"
+          }
+  
+        }
+      }
+  
+    }
+}

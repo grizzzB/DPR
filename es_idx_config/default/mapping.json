@@ -1,0 +1,82 @@
+{
+  "mappings": {
+    "properties": {
+      "idxId": {"type": "keyword"},
+      "idxSeq": {"type": "keyword"}, 
+      "chnlId": {"type": "keyword", "index": false}, 
+      "ctgrId": {"type": "keyword", "index": false}, 
+      "quesNo": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      }, 
+      "answNo": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      }, 
+      "chnlNm": {"type": "keyword", "index": false}, 
+      "ctgrNm": {"type": "keyword", "index": false}, 
+      "quesCtt": {"type": "text",
+        "fields": {
+          "nori": {
+            "type": "text",
+            "analyzer": "uni_nori_analyzer"
+          },
+          "keyword": {
+            "type":"keyword", "normalizer": "default_normalizer"
+          }
+        }, "similarity": "my_sim"},
+      "answCtt": {"type": "text",
+        "fields": {
+          "ngram": {
+            "type": "text",
+            "analyzer": "ngram_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          },
+          "keyword": {
+            "type":"keyword", "normalizer": "default_normalizer"
+          }
+        }
+        ,"similarity": "my_sim"
+      },
+      "answVw": {
+        "type": "object",
+        "enabled": false
+      },
+      "attr1": {"type": "keyword", "index": false},
+      "attr2": {"type": "keyword", "index": false}, 
+      "attr3": {"type": "keyword", "index": false}, 
+      "attr4": {"type": "keyword", "index": false}, 
+      "attr5": {"type": "keyword", "index": false},
+      "attr6": {"type": "keyword", "index": false},
+      "clas1Id": {"type": "keyword", "index": false},
+      "clas2Id": {"type": "keyword", "index": false}, 
+      "clas3Id": {"type": "keyword", "index": false}, 
+      "clas1Nm": {"type": "keyword", "index": false}, 
+      "clas2Nm": {"type": "keyword", "index": false},
+      "clas3Nm": {"type": "keyword", "index": false},
+      "tagCtt": {"type": "text",
+        "fields": {
+          "ngram_token":{
+            "type":"text",
+            "analyzer": "token_ngram_analyzer"
+          }
+        }, "similarity": "my_sim"},
+      "ofcrEmpNo": {"type": "keyword", "index": false},
+      "regEmpNo": {"type": "keyword", "index": false},
+      "regDtm": {"type":"text"}
+    }
+  }
+}

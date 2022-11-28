@@ -1,0 +1,40 @@
+{
+  "mappings": {
+    "properties": {
+      "origin_id": {"type": "keyword", "index": false},
+      "offset": {"type": "keyword", "index": false},
+      "title": {"type": "text",
+        "fields": {
+          "nori": {
+            "type": "text",
+            "analyzer": "uni_nori_analyzer"
+          },
+          "keyword": {
+            "type":"keyword", "normalizer": "default_normalizer"
+          }
+        }, "similarity": "my_sim"},
+
+      "context": {"type": "text",
+        "fields": {
+          "ngram": {
+            "type": "text",
+            "analyzer": "ngram_analyzer"
+          },
+          "nori": {
+            "type": "text",
+            "analyzer": "nori_analyzer"
+          },
+          "keyword": {
+            "type":"keyword", "normalizer": "default_normalizer"
+          }
+        }
+        ,"similarity": "my_sim"
+      },
+      "qas": {
+        "type": "object",
+        "enabled": false
+      },
+      "source": {"type": "keyword", "index": false}
+    }
+  }
+}
