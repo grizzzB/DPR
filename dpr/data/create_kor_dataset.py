@@ -28,13 +28,16 @@ class ESModifier:
         pass
 
     def get_whole_docs(self, index: str):
-        return( doc for doc in helpers.scan(self.es,
-                                            index=index,
-                                            scroll         = "1000m",
-                                            raise_on_error = False,
-                                            preserve_order = True,
-                                            query=QUERY["all"]))
+        print(f"Get whole data from {index} index.")
+        res = helpers.scan(self.es,
+                            index=index,
+                            scroll         = "5m",
+                            raise_on_error = False,
+                            preserve_order = True,
+                            query=QUERY["all"])
+        print("Done!!-------")
 
+        return list(res)
 
     def get_positives(self, answ:str, ques:str, index:str ):
         query = copy.copy(QUERY['positive'])
@@ -99,6 +102,8 @@ class ESModifier:
         return res
 
 
+es_obj = ESModifier()
+
 def split_passage(passage: str, max_len: int =120, min_len: int = 10):
     # whitespace 기준으로 길이 측정
     tokens = passage.split(" ")
@@ -139,55 +144,75 @@ def dump_json(jsonsl: list, out_path: str):
 def create_json_dataset(index:str, out_path: str):
     out_jsonsl = []
     cnt = 0
-    es_obj = ESModifier()
+    p = Pool(4)
+    
     data_iter = es_obj.get_whole_docs(index=index)
+    total_docs = len(data_iter)
+
+    print(f"Total docs: {total_docs}")
 
     for doc in data_iter:
+        
         answ_doc = {}
-        positive_ctxs = []
-
         # add default answer from source data.
         answ_doc['title'] = doc["_source"]["title"]
         answ_doc['text'] = doc["_source"]["context"]
         answ_doc['psg_id'] = doc["_id"]
         answ_doc['score'] = 1000
         answ_doc['title_score'] = 1
-        positive_ctxs.append(answ_doc)
-
+        origin_answer_ctxs = answ_doc
         # additional positive and hord-negatives
-        
-        for qa in doc["_source"]["qas"]:
-            out_json = {}
-            ques = qa["question"]
 
-            if type(qa["answers"]) is dict:
-                qa["answers"] = [qa["answers"]]
-            for a in qa["answers"]:
-                hard_negative_ctxs = []
-                answ = a['text']
-                #answ_offset = a['answer_start']
-                try:
-                    add_positives = es_obj.get_positives(answ=answ, ques=ques, index=index)
-                    hard_negative_ctxs = es_obj.get_hard_negatives(answ=answ, ques=ques, index=index)
-                except elasticsearch.NotFoundError as e:
-                    print(e)
-                    eixt()
+        out_jsonsl += p.starmap(get_dpr_document, zip(doc["_source"]["qas"],\
+            repeat(origin_answer_ctxs)))
 
-                out_json["dataset"] = index
-                out_json["question"] = ques
-                out_json["answers"] = answ
-                out_json["positive_ctxs"] =positive_ctxs + add_positives
-                out_json["hard_negative_ctxs"] = hard_negative_ctxs
-                out_json["negative_ctxs"] =[]
-                out_jsonsl.append(out_json)
-            if len(out_jsonsl) % 10000 == 0:
-                print(f"{index} is done for 10000 documents.")
-                dump_json(out_jsonsl, os.path.join(out_path, f"{index}_{cnt}.json"))
-                cnt += 1
-                out_jsonsl = []
-          
+        if len(out_jsonsl) % 10000 == 0:
+            total_docs -= 10000
+            print(f"******Remained: {total_docs}\n********")
 
-from multiprocessing import Process
+    print("write json file")
+    dump_json(out_jsonsl, os.path.join(out_path, f"{index}_{cnt}.json"))
+    p.close()
+    p.join()
+            
+
+def get_dpr_document( qa: dict, origin_answer_ctxs: dict ):
+    #print("test")
+    c_proc = mp.current_process()
+    print("Running on Process",c_proc.name,"PID",c_proc.pid)
+    out_json = {}
+    ques = qa["question"]
+    positive_ctxs = []
+    answer = ""
+    positive_ctxs.append(origin_answer_ctxs)
+
+    if type(qa["answers"]) is dict:
+        answer = qa["answers"]['text']
+    else:
+        answer = " ".join([token["text"] for token in qa["answers"]])
+
+    hard_negative_ctxs = []
+    add_positives = []
+
+    try:
+        add_positives = es_obj.get_positives(answ=answer, ques=ques, index=index)
+        hard_negative_ctxs = es_obj.get_hard_negatives(answ=answer, ques=ques, index=index)
+    except elasticsearch.NotFoundError as e:
+        print(f"{e} | {qa}")
+
+    out_json["dataset"] = index
+    out_json["question"] = ques
+    out_json["answers"] = answer
+    out_json["positive_ctxs"] =positive_ctxs + add_positives
+    out_json["hard_negative_ctxs"] = hard_negative_ctxs
+    out_json["negative_ctxs"] =[]
+
+    return out_json
+
+
+from multiprocessing import Pool
+import multiprocessing as mp
+from itertools import repeat
 
 parser = argparse.ArgumentParser(description='Argparse Tutorial')
 parser.add_argument('--indices', nargs="+",default=["korquad1"])
@@ -195,19 +220,14 @@ parser.add_argument('--output', type=str,   default="./")
 
 if __name__ == '__main__':
     #indices=["korquad1"]
+    
 
     args = parser.parse_args()
     print(f"argumets: {args}")
     indices=args.indices
+    
+    for index in indices:
+        create_json_dataset(index=index, out_path=args.output)
 
-    assert os.path.isdir(args.output), f"No valid path. {args.output}"
-
-    p_list = []
-    for idx in indices:
-        out_p = f'./{idx}.json'
-        p_list.append(Process(target = create_json_dataset, args=(idx, args.output)))
-        p_list[-1].start()
-    for p in p_list:
-        p.join()
 
  
