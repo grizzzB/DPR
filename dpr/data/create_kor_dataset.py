@@ -5,6 +5,7 @@ import elasticsearch
 from elasticsearch import Elasticsearch, helpers, AsyncElasticsearch
 from hjb_constant import QUERY
 import numpy as np
+import time
 import glob
 import os
 import json
@@ -144,15 +145,15 @@ def dump_json(jsonsl: list, out_path: str):
 def create_json_dataset(index:str, out_path: str):
     out_jsonsl = []
     cnt = 0
-    p = Pool(4)
+    p = Pool(3)
     
     data_iter = es_obj.get_whole_docs(index=index)
     total_docs = len(data_iter)
 
     print(f"Total docs: {total_docs}")
-
+    
     for doc in data_iter:
-        
+        start = time.time()
         answ_doc = {}
         # add default answer from source data.
         answ_doc['title'] = doc["_source"]["title"]
@@ -162,13 +163,13 @@ def create_json_dataset(index:str, out_path: str):
         answ_doc['title_score'] = 1
         origin_answer_ctxs = answ_doc
         # additional positive and hord-negatives
-
+        
         out_jsonsl += p.starmap(get_dpr_document, zip(doc["_source"]["qas"],\
             repeat(origin_answer_ctxs)))
 
-        if len(out_jsonsl) % 10000 == 0:
-            total_docs -= 10000
-            print(f"******Remained: {total_docs}\n********")
+        if len(out_jsonsl) % 10 == 0:
+            total_docs -= 10 
+            print(f"****Remained # Passage: {total_docs}**** {time.time()-start:.4f} s")
 
     print("write json file")
     dump_json(out_jsonsl, os.path.join(out_path, f"{index}_{cnt}.json"))
@@ -178,8 +179,8 @@ def create_json_dataset(index:str, out_path: str):
 
 def get_dpr_document( qa: dict, origin_answer_ctxs: dict ):
     #print("test")
-    c_proc = mp.current_process()
-    print("Running on Process",c_proc.name,"PID",c_proc.pid)
+    #c_proc = mp.current_process()
+    #print("Running on Process",c_proc.name,"PID",c_proc.pid)
     out_json = {}
     ques = qa["question"]
     positive_ctxs = []
